@@ -4,46 +4,43 @@ const { signToken } = require('../utils/auth');
 
 const resolvers = {
   Query: {
-    users: async () => {
-      return User.find().populate('thoughts');
-    },
-    user: async (parent, { username }) => {
-      return User.findOne({ username }).populate('thoughts');
-    },
-    thoughts: async (parent, { username }) => {
-      const params = username ? { username } : {};
-      return Thought.find(params).sort({ createdAt: -1 });
-    },
-    thought: async (parent, { thoughtId }) => {
-      return Thought.findOne({ _id: thoughtId });
+    me: async (parent,{ user = null, params }) => {
+      const foundUser = await User.findOne({
+        $or: [{ _id: user ? user._id : params.id }, { username: params.username }],
+      });
+  
+      if (!foundUser) {
+        throw new Error("Couldn't find user!"); 
+      }
+  
+      return foundUser;
     },
   },
 
   Mutation: {
-    addUser: async ({ body }, res) => {
+    addUser: async (parent, { body }) => {
       const user = await User.create(body);
   
       if (!user) {
-        return res.status(400).json({ message: 'Something is wrong!' });
-      }
+        throw new Error('Something is wrong!');      }
       const token = signToken(user);
       res.json({ token, user });
     },
-    login: async ({ body }, res) => {
+    login: async (parent, { body }) => {
       const user = await User.findOne({ $or: [{ username: body.username }, { email: body.email }] });
       if (!user) {
-        return res.status(400).json({ message: "Can't find this user" });
+        throw new AuthenticationError('Not found!');
       }
   
       const correctPw = await user.isCorrectPassword(body.password);
   
       if (!correctPw) {
-        return res.status(400).json({ message: 'Wrong password!' });
+        throw new AuthenticationError('Wrong Password!');
       }
       const token = signToken(user);
-      res.json({ token, user });
+      return { token, user };
     },
-    saveBook: async ({ user, body }, res) => {
+    saveBook: async (parent, { user, body }) => {
       console.log(user);
       try {
         const updatedUser = await User.findOneAndUpdate(
@@ -51,22 +48,22 @@ const resolvers = {
           { $addToSet: { savedBooks: body } },
           { new: true, runValidators: true }
         );
-        return res.json(updatedUser);
+        return updatedUser;
       } catch (err) {
         console.log(err);
-        return res.status(400).json(err);
+        throw new Error('Something is wrong with the user!'); 
       }
     },
-    removeBook: async ({ user, params }, res) => {
+    removeBook: async (parent, { user, params }) => {
       const updatedUser = await User.findOneAndUpdate(
         { _id: user._id },
         { $pull: { savedBooks: { bookId: params.bookId } } },
         { new: true }
       );
       if (!updatedUser) {
-        return res.status(404).json({ message: "Couldn't find user with this id!" });
+        throw new Error("Couldn't find user!"); 
       }
-      return res.json(updatedUser);
+      return updatedUser;
     },
   },
 };
