@@ -19,7 +19,8 @@ const resolvers = {
 
   me: async (parent, args, context) => {
     if (context.user) {
-      return User.findOne({ _id: context.user._id });
+      const user = await User.findOne({ _id: context.user._id });
+      return user;
     }
     throw new AuthenticationError('You need to be logged in!');
   },
@@ -49,6 +50,7 @@ const resolvers = {
       return { token, user };
     },
     saveBook: async (parent, { user, body }) => {
+      // get user from context instead?
       console.log(user);
       try {
         const updatedUser = await User.findOneAndUpdate(
