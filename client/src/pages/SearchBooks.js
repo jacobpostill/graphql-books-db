@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Container, Col, Form, Button, Card, Row } from "react-bootstrap";
-import { SAVE_BOOK } from '../utils/queries';
+import { SAVE_BOOK } from '../utils/mutations';
 import Auth from "../utils/auth";
 import { searchGoogleBooks } from "../utils/API";
 import { saveBookIds, getSavedBookIds } from "../utils/localStorage";
@@ -65,9 +65,9 @@ const SearchBooks = () => {
     }
 
     try {
-      const response = await saveBook(bookToSave, token);
-
-      if (!response.ok) {
+      const data = await saveBook(bookToSave, token);
+      // probably wrong, insofar as we need {user, body}
+      if (!data) {
         throw new Error("something went wrong!");
       }
 
