@@ -1,5 +1,5 @@
 const { AuthenticationError } = require('apollo-server-express');
-const { User, Thought } = require('../models');
+const { User, Book } = require('../models');
 const { signToken } = require('../utils/auth');
 
 const resolvers = {
@@ -20,59 +20,53 @@ const resolvers = {
   },
 
   Mutation: {
-    addUser: async (parent, { username, email, password }) => {
-      const user = await User.create({ username, email, password });
-      const token = signToken(user);
-      return { token, user };
-    },
-    login: async (parent, { email, password }) => {
-      const user = await User.findOne({ email });
-
+    addUser: async ({ body }, res) => {
+      const user = await User.create(body);
+  
       if (!user) {
-        throw new AuthenticationError('No user found with this email address');
+        return res.status(400).json({ message: 'Something is wrong!' });
       }
-
-      const correctPw = await user.isCorrectPassword(password);
-
-      if (!correctPw) {
-        throw new AuthenticationError('Incorrect credentials');
-      }
-
       const token = signToken(user);
-
-      return { token, user };
+      res.json({ token, user });
     },
-    addThought: async (parent, { thoughtText, thoughtAuthor }) => {
-      const thought = await Thought.create({ thoughtText, thoughtAuthor });
-
-      await User.findOneAndUpdate(
-        { username: thoughtAuthor },
-        { $addToSet: { thoughts: thought._id } }
-      );
-
-      return thought;
+    login: async ({ body }, res) => {
+      const user = await User.findOne({ $or: [{ username: body.username }, { email: body.email }] });
+      if (!user) {
+        return res.status(400).json({ message: "Can't find this user" });
+      }
+  
+      const correctPw = await user.isCorrectPassword(body.password);
+  
+      if (!correctPw) {
+        return res.status(400).json({ message: 'Wrong password!' });
+      }
+      const token = signToken(user);
+      res.json({ token, user });
     },
-    addComment: async (parent, { thoughtId, commentText, commentAuthor }) => {
-      return Thought.findOneAndUpdate(
-        { _id: thoughtId },
-        {
-          $addToSet: { comments: { commentText, commentAuthor } },
-        },
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
+    saveBook: async ({ user, body }, res) => {
+      console.log(user);
+      try {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: user._id },
+          { $addToSet: { savedBooks: body } },
+          { new: true, runValidators: true }
+        );
+        return res.json(updatedUser);
+      } catch (err) {
+        console.log(err);
+        return res.status(400).json(err);
+      }
     },
-    removeThought: async (parent, { thoughtId }) => {
-      return Thought.findOneAndDelete({ _id: thoughtId });
-    },
-    removeComment: async (parent, { thoughtId, commentId }) => {
-      return Thought.findOneAndUpdate(
-        { _id: thoughtId },
-        { $pull: { comments: { _id: commentId } } },
+    removeBook: async ({ user, params }, res) => {
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: user._id },
+        { $pull: { savedBooks: { bookId: params.bookId } } },
         { new: true }
       );
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Couldn't find user with this id!" });
+      }
+      return res.json(updatedUser);
     },
   },
 };
