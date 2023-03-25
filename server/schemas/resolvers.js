@@ -4,18 +4,26 @@ const { signToken } = require('../utils/auth');
 
 const resolvers = {
   Query: {
-    me: async (parent,{ user = null, params }) => {
-      const foundUser = await User.findOne({
-        $or: [{ _id: user ? user._id : params.id }, { username: params.username }],
-      });
+  //   me: async (parent,{ user = null, params }) => {
+  //     const foundUser = await User.findOne({
+  //       $or: [{ _id: user ? user._id : params.id }, { username: params.username }],
+  //     });
   
-      if (!foundUser) {
-        throw new Error("Couldn't find user!"); 
-      }
+  //     if (!foundUser) {
+  //       throw new Error("Couldn't find user!"); 
+  //     }
   
-      return foundUser;
-    },
+  //     return foundUser;
+  //   },
+  // },
+
+  me: async (parent, args, context) => {
+    if (context.user) {
+      return User.findOne({ _id: context.user._id });
+    }
+    throw new AuthenticationError('You need to be logged in!');
   },
+},
 
   Mutation: {
     addUser: async (parent, { body }) => {
@@ -24,7 +32,7 @@ const resolvers = {
       if (!user) {
         throw new Error('Something is wrong!');      }
       const token = signToken(user);
-      res.json({ token, user });
+      return { token, user };
     },
     login: async (parent, { body }) => {
       const user = await User.findOne({ $or: [{ username: body.username }, { email: body.email }] });
