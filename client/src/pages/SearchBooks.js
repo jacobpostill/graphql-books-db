@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Container, Col, Form, Button, Card, Row } from "react-bootstrap";
-import { SAVE_BOOK } from '../utils/mutations';
+import { useQuery, useMutation } from '@apollo/client';
 import Auth from "../utils/auth";
+import { SAVE_BOOK } from '../utils/mutations';
+import { GET_ME } from '../utils/queries';
+
 import { searchGoogleBooks } from "../utils/API";
 import { saveBookIds, getSavedBookIds } from "../utils/localStorage";
-import { useQuery, useMutation } from '@apollo/client';
+
 const SearchBooks = () => {
+  const {loading, meErr, data:yieldMe} = useQuery(GET_ME);
+
   // create state for holding returned google api data
   const [searchedBooks, setSearchedBooks] = useState([]);
   // create state for holding our search field data
@@ -14,6 +19,7 @@ const SearchBooks = () => {
   // create state to hold saved bookId values
   const [savedBookIds, setSavedBookIds] = useState(getSavedBookIds());
   const [saveBook, {error,data}] = useMutation(SAVE_BOOK);
+
   // set up useEffect hook to save `savedBookIds` list to localStorage on component unmount
   // learn more here: https://reactjs.org/docs/hooks-effect.html#effects-with-cleanup
   // useEffect(() => {
@@ -65,7 +71,7 @@ const SearchBooks = () => {
     }
 
     try {
-      const data = await saveBook(bookToSave, token);
+      const data = await saveBook(bookToSave);
       // probably wrong, insofar as we need {user, body}
       if (!data) {
         throw new Error("something went wrong!");
@@ -109,7 +115,8 @@ const SearchBooks = () => {
         <h2 className="pt-5">
           {searchedBooks.length
             ? `Viewing ${searchedBooks.length} results:`
-            : "Search for a book to begin"}
+            : `Search for a book to begin${yieldMe ? ', '+yieldMe.me.username+'!' : '!'}`}<br/>
+            
         </h2>
         <Row>
           {searchedBooks.map((book) => {
@@ -133,7 +140,8 @@ const SearchBooks = () => {
                           (savedBookId) => savedBookId === book.bookId
                         )}
                         className="btn-block btn-info"
-                        onClick={() => handleSaveBook(book.bookId)}
+                        onClick={() => {console.log('book is'+book.bookId);
+                          return handleSaveBook(book.bookId)}}
                       >
                         {savedBookIds?.some(
                           (savedBookId) => savedBookId === book.bookId
