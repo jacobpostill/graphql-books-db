@@ -20,8 +20,7 @@ const resolvers = {
   me: async (parent, args, context) => {
     if (context.user) {
       const user = await User.findOne({ _id: context.user._id });
-      console.log('userinme');
-      console.log(user);
+    
       return user;
     }
     throw new AuthenticationError('You need to be logged in!');
@@ -30,7 +29,7 @@ const resolvers = {
 
   Mutation: {
     addUser: async (parent, args, context) => {
-      console.log(args);
+     
       const user = await User.create(args);
   
       if (!user) {
@@ -39,11 +38,11 @@ const resolvers = {
       return { token, user };
     },
     login: async (parent, body) => {
+      console.log('inlogin');
       const user = await User.findOne({ $or: [{ username: body.username }, { email: body.email }] });
       if (!user) {
         throw new AuthenticationError('Not found!');
       }
-  
       const correctPw = await user.isCorrectPassword(body.password);
   
       if (!correctPw) {
@@ -55,29 +54,33 @@ const resolvers = {
     saveBook: async (parent, body, context) => {
       // get user from context instead?
       try {
-        console.log(user);
+        console.log('bookadd');
+        console.log(context.user);
         const updatedUser = await User.findOneAndUpdate(
           { _id: context.user._id },
           { $addToSet: { savedBooks: body } },
           { new: true, runValidators: true }
         );
+   
+        console.log(updatedUser);
         return updatedUser;
       } catch (err) {
         console.log(err);
         throw new Error('Something is wrong with the user!'); 
       }
     },
-    removeBook: async (parent, { user, params }) => {
-      // again, decide on whether it ought to be context
-      const updatedUser = await User.findOneAndUpdate(
-        { _id: user._id },
-        { $pull: { savedBooks: { bookId: params.bookId } } },
-        { new: true }
-      );
-      if (!updatedUser) {
-        throw new Error("Couldn't find user!"); 
+    removeBook: async (parent,  bookId , context) => {
+      if (context.user) {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $pull: { savedBooks: { bookId: bookId } } },
+          { new: true }
+        );
+
+        return updatedUser;
       }
-      return updatedUser;
+
+      throw new AuthenticationError('You need to be logged in!');
     },
   },
 };
