@@ -18,6 +18,12 @@ const SearchBooks = () => {
 
   // create state to hold saved bookId values
   const [savedBookIds, setSavedBookIds] = useState(getSavedBookIds());
+
+
+  // The refetchQueries option is added to ensure that the card components get updated with the new
+  // user information. Although the key field in the card component ought to trigger a repaint,
+  // it does not currently seem to do so. This is a potential refactoring spot.
+
   const [saveBook, {error,data}] = useMutation(SAVE_BOOK, {refetchQueries: [{ query: GET_ME }]});
 
   // set up useEffect hook to save `savedBookIds` list to localStorage on component unmount
@@ -62,7 +68,6 @@ const SearchBooks = () => {
   const handleSaveBook = async (bookId) => {
     // find the book in `searchedBooks` state by the matching id
     const bookToSave = searchedBooks.find((book) => book.bookId === bookId);
-    console.log('booktosave '+bookToSave.title);
     // get token
     const token = Auth.loggedIn() ? Auth.getToken() : null;
 

@@ -9,13 +9,17 @@ import {
 import { useParams } from 'react-router-dom';
 import { GET_ME } from '../utils/queries';
 import { REMOVE_BOOK } from '../utils/mutations';
-// import { getMe, deleteBook } from '../utils/API';
 import { useQuery, useMutation } from '@apollo/client';
 import Auth from '../utils/auth';
 import { removeBookId } from '../utils/localStorage';
 
 const SavedBooks = () => {
   const {loading, meErr, data:yieldMe} = useQuery(GET_ME);
+
+  // The refetchQueries option is added to ensure that the card components get updated with the new
+  // user information. Although the key field in the card component ought to trigger a repaint,
+  // it does not currently seem to do so. This is a potential refactoring spot.
+
   const [removeBook, {error,data}] = useMutation(REMOVE_BOOK, {refetchQueries: [{ query: GET_ME }]});
   const userData = yieldMe?.me || {};
   if (loading) {
