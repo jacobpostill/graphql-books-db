@@ -15,10 +15,9 @@ import Auth from '../utils/auth';
 import { removeBookId } from '../utils/localStorage';
 
 const SavedBooks = () => {
-  const [removeBook, {error,data}] = useMutation(REMOVE_BOOK);
   const {loading, meErr, data:yieldMe} = useQuery(GET_ME);
-  const userData = yieldMe?.me || {}
-  console.log(userData.me);
+  const [removeBook, {error,data}] = useMutation(REMOVE_BOOK, {refetchQueries: [{ query: GET_ME }]});
+  const userData = yieldMe?.me || {};
   if (loading) {
     return <h3>Loading book data...</h3>;
   }
@@ -31,16 +30,11 @@ const SavedBooks = () => {
     }
 
     try {
-      console.log(bookId);
       const { data } = await removeBook({variables:{bookId}});
-
       if (!data) {
         throw new Error('something went wrong!');
       }
 
-      // const updatedUser = await response.json();
-      // setUserData(data);
-      // possibly data.removeBook.user?
       // upon success, remove book's id from localStorage
       removeBookId(bookId);
     } catch (err) {
@@ -53,7 +47,7 @@ const SavedBooks = () => {
     <>
       <div fluid className="text-light bg-dark p-5">
         <Container>
-          <h1>Viewing saved books!</h1>
+          <h1>{`Viewing ${yieldMe ? yieldMe.me.username+"'s" : ""} saved books!`}</h1>
         </Container>
       </div>
       <Container>
@@ -63,7 +57,7 @@ const SavedBooks = () => {
             : 'You have no saved books!'}
         </h2>
         <Row>
-          {userData.savedBooks && userData.savedBooks.map((book) => {
+          {yieldMe.me.savedBooks && yieldMe.me.savedBooks.map((book) => {
             return (
               <Col md="4">
                 <Card key={book.bookId} border='dark'>
