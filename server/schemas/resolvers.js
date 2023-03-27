@@ -69,8 +69,9 @@ const resolvers = {
         throw new Error('Something is wrong with the user!'); 
       }
     },
-    removeBook: async (parent,  bookId , context) => {
+    removeBook: async (parent,  {bookId} , context) => {
       if (context.user) {
+        console.log('inremove');
         const updatedUser = await User.findOneAndUpdate(
           { _id: context.user._id },
           { $pull: { savedBooks: { bookId: bookId } } },

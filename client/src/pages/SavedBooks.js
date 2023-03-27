@@ -15,41 +15,13 @@ import Auth from '../utils/auth';
 import { removeBookId } from '../utils/localStorage';
 
 const SavedBooks = () => {
-  const {userId} = useParams();
-   const [userData, setUserData] = useState('');
   const [removeBook, {error,data}] = useMutation(REMOVE_BOOK);
-
-  //useQuery(GET_ME)
-
-  
-  // use this to determine if `useEffect()` hook needs to run again
-  // const userDataLength = Object.keys(userData).length;
-
-  // useEffect(() => {
-  //   const getUserData = async () => {
-  //     try {
-  //       const token = Auth.loggedIn() ? Auth.getToken() : null;
-
-  //       if (!token) {
-  //         return false;
-  //       }
-
-  //       const response = await getMe(token);
-
-  //       if (!response.ok) {
-  //         throw new Error('something went wrong!');
-  //       }
-
-  //       const user = await response.json();
-  //       setUserData(user);
-  //     } catch (err) {
-  //       console.error(err);
-  //     }
-  //   };
-
-  //   getUserData();
-  // }, [userDataLength]);
-
+  const {loading, meErr, data:yieldMe} = useQuery(GET_ME);
+  const userData = yieldMe?.me || {}
+  console.log(userData.me);
+  if (loading) {
+    return <h3>Loading book data...</h3>;
+  }
   // create function that accepts the book's mongo _id value as param and deletes the book from the database
   const handleDeleteBook = async (bookId) => {
     const token = Auth.loggedIn() ? Auth.getToken() : null;
@@ -59,14 +31,15 @@ const SavedBooks = () => {
     }
 
     try {
-      const { data } = await removeBook(bookId, token);
+      console.log(bookId);
+      const { data } = await removeBook({variables:{bookId}});
 
       if (!data) {
         throw new Error('something went wrong!');
       }
 
       // const updatedUser = await response.json();
-      setUserData(data);
+      // setUserData(data);
       // possibly data.removeBook.user?
       // upon success, remove book's id from localStorage
       removeBookId(bookId);
@@ -75,10 +48,6 @@ const SavedBooks = () => {
     }
   };
 
-  // if data isn't here yet, say so
-  // if (!userDataLength) {
-  //   return <h2>LOADING...</h2>;
-  
 
   return (
     <>
@@ -89,12 +58,12 @@ const SavedBooks = () => {
       </div>
       <Container>
         <h2 className='pt-5'>
-          {userData.savedBooks.length
+          {userData.savedBooks && userData.savedBooks.length
             ? `Viewing ${userData.savedBooks.length} saved ${userData.savedBooks.length === 1 ? 'book' : 'books'}:`
             : 'You have no saved books!'}
         </h2>
         <Row>
-          {userData.savedBooks.map((book) => {
+          {userData.savedBooks && userData.savedBooks.map((book) => {
             return (
               <Col md="4">
                 <Card key={book.bookId} border='dark'>
